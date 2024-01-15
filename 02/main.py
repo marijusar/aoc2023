@@ -18,23 +18,27 @@ def main():
 
         suf = [x for x in game.split(":") if len(x) > 1 ]
         shows =  [x.strip() for x in suf[1].replace(";", ",").split(",")]
-        print(shows)
-        hasHigher = False
 
-        for show in shows : 
-            number, color  = show.split(" ")
+        colorCubeMap = {}
 
-            if limits[color] < int(number) : 
-                # print({"color" : color, "number" : number})
-                hasHigher = True
+        for show in shows :
+            num, color = show.split(" ")
+            if color in colorCubeMap :
+                if colorCubeMap[color] < int(num) :
+                    colorCubeMap[color] = int(num)
+            else :
+                colorCubeMap[color] = int(num)
+
+        cubeCountArray = colorCubeMap.values()
+        cubePowerAccumulator = 1
+
+        print(cubeCountArray)
         
-        if hasHigher is False :
-            print(idx + 1)
-            acc += idx + 1
-            # print(acc)
+        for c in cubeCountArray : 
+           cubePowerAccumulator = c * cubePowerAccumulator 
 
+        acc += cubePowerAccumulator
 
-        hasHigher = False
         
     print(acc)
 
