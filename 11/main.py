@@ -34,8 +34,11 @@ part_one = sum(get_paths(coordinates))
 # print(part_one)
 
 
-f_two = open("./input.txt")
+f_two = open("./test.txt")
 part_two_grid = [list(x.strip()) for x in f_two.readlines()]
+
+empty_rows = [idx for idx, x in enumerate(part_two_grid) if "#" not in x]
+empty_cols = [idx for idx, x in enumerate(zip(*part_two_grid)) if "#" not in x]
 
 def get_offset_nums(axis, offsets) :
     nums = [x for x in axis]
