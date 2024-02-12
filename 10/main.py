@@ -1,4 +1,4 @@
-file = open("test5.txt")
+file = open("input.txt")
 lines = [x.strip() for x in file.readlines()]
 
 class Coordinates :
