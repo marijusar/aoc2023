@@ -88,7 +88,6 @@ def iterate_times(grid, times) :
             mem[serialized_grid] = i
  
 second_time, first_time = iterate_times(lines, times) 
-print(second_time, first_time)
 looping_gens = times - first_time 
 in_loop_gens = looping_gens % (second_time - first_time)
 
