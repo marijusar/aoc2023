@@ -1,19 +1,16 @@
 from functools import cmp_to_key
 import math
 
-f = open("./test.txt")
+f = open("./input.txt")
 grid = [x.strip() for x in f.readlines()]
 
 def sort_edges(a,b) :
-    _,  distance_a, _, _ = a
-    _, distance_b, _, _ = b
+    node_a, v1 = a
+    node_b, v2 = b
 
-    return distance_a- distance_b
+    return v1- v2
 
-def get_current_direction(prev_node, curr_node) :
-    prev_x, prev_y = prev_node
-    curr_x, curr_y = curr_node
-
+def get_current_direction(prev_x, prev_y, curr_x, curr_y) :
     if prev_x == curr_x : 
         if curr_y > prev_y :
             return "s"
@@ -28,8 +25,9 @@ def get_current_direction(prev_node, curr_node) :
 
 
 def get_nodes(node, nodes) :
-    offsets = [(0, 1), (0, -1), (1, 0) , (-1,0)]
-    x,y = node
+    offsets = [ (1, 0), (-1,0) ,(0, 1), (0, -1)]
+
+    x,y,streak,direction = node
     new_nodes = []
     
     for offset in offsets :
@@ -39,111 +37,94 @@ def get_nodes(node, nodes) :
         if new_x < 0 or new_x >= len(nodes[y]) or new_y < 0 or new_y >= len(nodes):
             continue
         next_node = (x + offset_x , y + offset_y)
-        new_nodes.append(next_node)
+        new_direction = get_current_direction(x, y, new_x, new_y)
+        if direction == "e" and new_direction == "w" or direction == "w" and new_direction == "e" or direction == "n" and new_direction == "s" or direction == "s" and new_direction == "n" :
+            continue
+        new_streak = streak + 1 if direction == new_direction else 1
+        new_node = (x + offset_x, y+ offset_y, new_streak, new_direction)
+        new_nodes.append(new_node)
+
     return new_nodes
 
-def get_node_cache_key(node, nodes) :
-    x, y = node
-    cache_key = len(nodes) * y + x
-    return cache_key
 
-def get_node_from_cache_key(key, grid) :
-    x = key % len(grid)
-    y = math.floor(key / len(grid))
-
-    return (x, y)
-    
 
 def dijkstras(nodes):
-    # coordinatates , value, streak, direction
-    pqueue = [((0,0), 0, 0, "e")]
-    visited = [False] * len(nodes) * len(nodes[0])
-    prev = [None] * len(nodes) * len(nodes[0])
-    distances = [float('inf')] * len(nodes) * len(nodes[0])
-    distances[0] = 0
+    # (x, y, streak, direction) , value
+    pqueue = [((0,0,0, "e"), 0 )]
+    visited = {}
+    prev = {}
+    distances = {}
+    distances[(0, 0, 0, "e")] = 0
+    acc = []
 
     while len(pqueue) > 0 :
-        current_node, value, streak, direction  = pqueue.pop()
-        cache_key = get_node_cache_key(current_node, nodes)
+        current_node, value = pqueue.pop(0)
+        x, y, streak, direction = current_node
 
-        if visited[cache_key] == True :
+        if x == len(nodes[y]) - 1 and y == len(nodes) - 1 :
+            acc.append(current_node)
+
+        if current_node in visited:
             continue
 
-        visited[cache_key] == True
+        visited[current_node] = True
 
         new_nodes = get_nodes(current_node, nodes)
 
         for node in new_nodes :
-            next_x, next_y = node
-            next_cache_key = get_node_cache_key(node, nodes)
-            next_distance = distances[cache_key] + int(nodes[next_y][next_x])
-            new_direction = get_current_direction(current_node, node)
-            new_streak = streak + 1 if direction == new_direction else 1
+            next_x, next_y, new_streak, new_direction = node
+            next_distance = distances[current_node] + int(nodes[next_y][next_x])
+
+            if node in visited : 
+                continue
+
             if new_streak == 4 :
                 continue
 
-            if visited[next_cache_key] == True :
-                continue
-
-            if next_distance < distances[next_cache_key] :
-                distances[next_cache_key] = next_distance
-                prev[next_cache_key] = cache_key
-                pqueue.append((node, next_distance, new_streak, new_direction ))
+            if node not in distances or next_distance < distances[node] :
+                distances[node] = next_distance
+                prev[node] = current_node
+                pqueue.append((node, next_distance))
                 pqueue.sort(key=cmp_to_key(sort_edges))
-            print(pqueue)
 
-    return (distances, prev)
-
-    #     current_node, value, streak, direction  = pqueue.pop()
-    #     x, y = current_node
-    #     if x == len(nodes[0]) -1 and y == len(nodes) - 1 :
-    #         return (distances, prev)
-    #     cache_key = get_node_cache_key(current_node, nodes)
-    #     visited[cache_key] = True
-    #     new_nodes = get_nodes(current_node, nodes)
-    #     for next_node in new_nodes :
-    #         next_cache_key = get_node_cache_key(next_node, nodes)
-    #         if visited[next_cache_key] :
-    #             continue
-    #         next_distance = distances[cache_key] + int(nodes[next_node[1]][next_node[0]])
-    #         if next_distance < distances[next_cache_key] : 
-    #             new_direction = get_current_direction(current_node, next_node)
-    #             new_streak = streak + 1 if direction == new_direction else 1
-    #             # if new_streak >= 4 :
-    #             #     continue
-    #             distances[next_cache_key] = next_distance
-    #             prev[next_cache_key] = cache_key
-    #             pqueue.append((next_node, next_distance, new_streak, new_direction ))
-    #             pqueue.sort(key=cmp_to_key(sort_edges))
-    # return (distances, prev)
+    return distances, prev, acc
 
 
-distances, prev_nodes = dijkstras(grid)
-print(distances)
-print(distances[len(distances) - 1])
+dists, prev, acc = dijkstras(grid)
 
-def find_path(nodes) :
-    curr_node_idx = nodes[len(nodes) - 1]
+def get_min_key(distances, acc) :
+    v = float("inf")
+    k = None
+    for i in acc :
+        if distances[i] < v :
+            v = distances[i]
+            k = i
+    return k, v
+
+last_node, v = get_min_key(dists, acc)
+print(v)
+
+def find_path(nodes, node) :
+    node = nodes[node]
     path = []
 
-    while curr_node_idx != None :
-        path.append(curr_node_idx)
-        curr_node_idx = nodes[curr_node_idx]
+    while node in nodes :
+        path.append(node)
+        node = nodes[node]
 
     return list(reversed(path))
         
         
         
-path = find_path(prev_nodes)
-print(path)
+path = find_path(prev, last_node)
 
+#
 def print_grid(grid) :
     print("\n".join(["".join(x) for x in grid]))
-
-# print(path)
-
+print_grid(grid)
+print("-------")
 for i in path :
-    x,y  = get_node_from_cache_key(i, grid)
+    x,y, _, _  = i
     list_grid = list(grid[y])
     list_grid[x] = "#"
     grid[y] = "".join(list_grid)
