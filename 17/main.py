@@ -70,6 +70,7 @@ def dijkstras(nodes):
         visited[current_node] = True
 
         new_nodes = get_nodes(current_node, nodes)
+        
 
         for node in new_nodes :
             next_x, next_y, new_streak, new_direction = node
@@ -78,8 +79,15 @@ def dijkstras(nodes):
             if node in visited : 
                 continue
 
-            if new_streak == 4 :
+            if new_streak > 10 :
                 continue
+            if streak < 4 and direction != new_direction :
+                continue
+
+            if new_streak < 4 and len(nodes[next_y]) - 1 == next_x and len(nodes) - 1 == next_y :
+                continue
+
+
 
             if node not in distances or next_distance < distances[node] :
                 distances[node] = next_distance
