@@ -1,14 +1,9 @@
 from functools import cmp_to_key
+from queue import PriorityQueue
 import math
 
 f = open("./input.txt")
 grid = [x.strip() for x in f.readlines()]
-
-def sort_edges(a,b) :
-    node_a, v1 = a
-    node_b, v2 = b
-
-    return v1- v2
 
 def get_current_direction(prev_x, prev_y, curr_x, curr_y) :
     if prev_x == curr_x : 
@@ -50,15 +45,16 @@ def get_nodes(node, nodes) :
 
 def dijkstras(nodes):
     # (x, y, streak, direction) , value
-    pqueue = [((0,0,0, "e"), 0 )]
+    pqueue = PriorityQueue()
+    pqueue.put((0 , (0,0,0, "e")))
     visited = {}
     prev = {}
     distances = {}
     distances[(0, 0, 0, "e")] = 0
     acc = []
 
-    while len(pqueue) > 0 :
-        current_node, value = pqueue.pop(0)
+    while not pqueue.empty() :
+        value, current_node = pqueue.get(0)
         x, y, streak, direction = current_node
 
         if x == len(nodes[y]) - 1 and y == len(nodes) - 1 :
@@ -92,8 +88,7 @@ def dijkstras(nodes):
             if node not in distances or next_distance < distances[node] :
                 distances[node] = next_distance
                 prev[node] = current_node
-                pqueue.append((node, next_distance))
-                pqueue.sort(key=cmp_to_key(sort_edges))
+                pqueue.put((next_distance, node))
 
     return distances, prev, acc
 
