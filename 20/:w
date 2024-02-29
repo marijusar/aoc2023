@@ -1,0 +1,143 @@
+f = open("./input.txt")
+lines = [x.strip() for x in f.readlines()]
+
+pulse_types = {
+    "H" : "H",
+    "L" : "L"
+}
+
+
+class FlipFlopModule :
+    state = False 
+    pending_pulse = None
+
+    def receive_pulse(self,pulse,sender) :
+        if pulse == pulse_types["H"] :
+            self.pending_pulse = None
+       
+        if pulse == pulse_types["L"] :
+            temp_state = self.state
+            self.state = not self.state
+            if temp_state  == False :
+                self.pending_pulse =  pulse_types["H"]
+            else :
+                self.pending_pulse =  pulse_types["L"]
+
+    def send_pulse(self, target):
+        return self.pending_pulse
+    
+    def to_json(self): 
+        return {
+            "state" : self.state,
+            "pending_pulse" : None
+        }
+
+
+class ConjunctionModule :
+    def __init__(self) :
+        self.mem = {}
+    def receive_pulse(self, pulse, sender):
+        self.mem[sender] = pulse
+
+    def send_pulse(self, target) :
+        v = list(self.mem.values())
+        l = [x for x in v if x == pulse_types["L"]]
+        if len(l) > 0 :
+            return pulse_types["H"]
+
+        return pulse_types["L"]
+    def subscribe(self, m) :
+        self.mem[m] = "L"
+
+    def to_json(self) :
+        return self.mem
+
+class BroadcastModule :
+    pending_pulse = None
+
+    def receive_pulse(self, pulse, sender) :
+        self.pending_pulse = pulse
+
+    def send_pulse(self, target) :
+        return self.pending_pulse
+
+module_map = {
+    "%" : FlipFlopModule,
+    "&" : ConjunctionModule,
+    "b" : BroadcastModule
+}
+
+modules = {}
+conj = []
+for i in lines :
+    module, receivers = i.split("->")
+
+    m_t = module[0:1].strip()
+    m_n = module[1:].strip()
+    r_a = [x.strip() for x in receivers.split(",")]
+
+    if m_t == "&" :
+        conj.append(m_n)
+
+    m = module_map[m_t]()
+
+    mod = {
+        "m" : m,
+        "r" : r_a
+    }
+    modules[m_n] = mod
+
+for i in conj :
+    for k in modules :
+        if i in modules[k]["r"] :
+            modules[i]["m"].subscribe(k)
+
+    
+
+def send_signal(signal) :
+    s = [signal]
+    l = 1
+    h = 0
+
+    while len(s) > 0 :
+        s_0 = s.pop(0)
+        reciever, pulse, sender = s_0 
+        if reciever not in modules :
+            continue
+        modules[reciever]["m"].receive_pulse(pulse, sender)
+
+        for i in modules[reciever]["r"] :
+            pulse = modules[reciever]["m"].send_pulse(i)
+            if not pulse :
+                continue
+            if pulse == "H" :
+                h += 1
+            if pulse == "L" :
+                l += 1
+            if i == "rx" and pulse == pulse_types["L"] :
+                print('here')
+                return (l, h, True)
+            s.append((i, pulse, reciever))
+
+    return (l, h, False)
+
+l = range(1000)
+signals = [send_signal(("roadcaster", "L", "btn")) for x in l]
+
+l_s= sum([x[0] for x in signals])
+h_s = sum([x[1] for x in signals])
+
+part_one = l_s * h_s
+
+print(part_one)
+
+done = False
+part_two = 0
+
+while not done :
+    l, h , d = send_signal(("roadcaster", "L", "btn"))
+    done = d
+    part_two += l + h
+
+print(part_two)
+
